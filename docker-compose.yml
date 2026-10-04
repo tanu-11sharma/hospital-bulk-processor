@@ -1,0 +1,23 @@
+services:
+  api:
+    build: .
+    image: hospital-bulk:latest
+    ports:
+      - "8000:8000"
+    environment:
+      HOSPITAL_API_BASE_URL: ${HOSPITAL_API_BASE_URL:-https://hospital-directory.onrender.com}
+      MAX_CONCURRENCY: ${MAX_CONCURRENCY:-10}
+      MAX_RETRIES: ${MAX_RETRIES:-3}
+      REQUEST_TIMEOUT_SECONDS: ${REQUEST_TIMEOUT_SECONDS:-60}
+    restart: unless-stopped
+
+  # Runs the test suite in the same image: `docker compose run --rm tests`
+  tests:
+    build: .
+    profiles: ["test"]
+    user: root
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./pytest.ini:/app/pytest.ini:ro
+      - ./requirements-dev.txt:/app/requirements-dev.txt:ro
+    command: sh -c "pip install -q pytest && pytest -q"
