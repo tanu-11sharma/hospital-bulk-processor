@@ -106,6 +106,11 @@ class HospitalDirectoryClient:
                 if resp.status_code not in RETRYABLE_STATUS:
                     raise last_error  # 4xx = our input is wrong; retrying won't help
                 retry_after = _parse_retry_after(resp.headers.get("Retry-After"))
+                if resp.status_code == 429 and retry_after is None:
+                    # Rate limited without a hint: back off much harder than for a 5xx.
+                    retry_after = self._backoff(
+                        attempt, base_seconds=self._settings.rate_limit_backoff_seconds
+                    )
 
             if attempt < max_attempts:
                 delay = retry_after if retry_after is not None else self._backoff(attempt)
@@ -116,8 +121,10 @@ class HospitalDirectoryClient:
         assert last_error is not None
         raise last_error
 
-    def _backoff(self, attempt: int) -> float:
-        base = self._settings.retry_backoff_seconds * (2 ** (attempt - 1))
+    def _backoff(self, attempt: int, base_seconds: Optional[float] = None) -> float:
+        if base_seconds is None:
+            base_seconds = self._settings.retry_backoff_seconds
+        base = base_seconds * (2 ** (attempt - 1))
         return base + random.uniform(0, base * 0.25)  # jitter avoids thundering herd
 
 

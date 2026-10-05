@@ -9,8 +9,8 @@ services:
       - key: HOSPITAL_API_BASE_URL
         value: https://hospital-directory.onrender.com
       - key: MAX_CONCURRENCY
-        value: "10"
+        value: "5"
       - key: MAX_RETRIES
-        value: "3"
+        value: "4"
       - key: REQUEST_TIMEOUT_SECONDS
         value: "60"

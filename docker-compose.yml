@@ -6,8 +6,8 @@ services:
       - "8000:8000"
     environment:
       HOSPITAL_API_BASE_URL: ${HOSPITAL_API_BASE_URL:-https://hospital-directory.onrender.com}
-      MAX_CONCURRENCY: ${MAX_CONCURRENCY:-10}
-      MAX_RETRIES: ${MAX_RETRIES:-3}
+      MAX_CONCURRENCY: ${MAX_CONCURRENCY:-5}
+      MAX_RETRIES: ${MAX_RETRIES:-4}
       REQUEST_TIMEOUT_SECONDS: ${REQUEST_TIMEOUT_SECONDS:-60}
     restart: unless-stopped
 

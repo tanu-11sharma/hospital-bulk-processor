@@ -29,10 +29,15 @@ class Settings:
     )
 
     # Concurrency / resilience
-    max_concurrency: int = field(default_factory=lambda: _env_int("MAX_CONCURRENCY", 10))
-    max_retries: int = field(default_factory=lambda: _env_int("MAX_RETRIES", 3))
+    # The upstream rate-limits (HTTP 429), so stay modest by default.
+    max_concurrency: int = field(default_factory=lambda: _env_int("MAX_CONCURRENCY", 5))
+    max_retries: int = field(default_factory=lambda: _env_int("MAX_RETRIES", 4))
     retry_backoff_seconds: float = field(
         default_factory=lambda: _env_float("RETRY_BACKOFF_SECONDS", 0.5)
+    )
+    # Base wait after a 429 that carries no Retry-After header (doubles each retry).
+    rate_limit_backoff_seconds: float = field(
+        default_factory=lambda: _env_float("RATE_LIMIT_BACKOFF_SECONDS", 2.0)
     )
 
     # Input limits

@@ -124,6 +124,8 @@ CSV ──────▶ │ upload limits → csv_parser (validate all rows)�
   half an upload.
 * **Retries only where they can help.** Network errors, timeouts, `408/425/429/5xx`
   are retried with exponential backoff + jitter (honouring `Retry-After`).
+  The upstream does rate-limit, so a `429` without `Retry-After` backs off
+  much harder (2 s, 4 s, 8 s, …) than a `5xx`.
   Other `4xx` mean the data is wrong, so they fail immediately.
 * **Resume** (`POST /hospitals/bulk/{id}/resume`) re-runs only the failed rows
   under the *same* batch ID, then activates. If creation already succeeded but
@@ -139,8 +141,8 @@ CSV ──────▶ │ upload limits → csv_parser (validate all rows)�
 ### Performance & scalability
 
 * **Concurrent creation.** Rows are created in parallel with `asyncio.gather`,
-  bounded by a semaphore (`MAX_CONCURRENCY`, default 10). With 300 ms upstream
-  latency, 20 rows take ~0.6 s instead of ~6 s sequentially. A test asserts the
+  bounded by a semaphore (`MAX_CONCURRENCY`, default 5, because the upstream rate-limits). With
+  300 ms upstream latency, 20 rows take ~1.2 s instead of ~6 s sequentially. A test asserts the
   bound is never exceeded.
 * **The semaphore is process-wide**, not per upload, so many simultaneous uploads
   can't overwhelm the upstream.
@@ -167,9 +169,10 @@ contained change.
 | Env var | Default | |
 |---|---|---|
 | `HOSPITAL_API_BASE_URL` | `https://hospital-directory.onrender.com` | Upstream API |
-| `MAX_CONCURRENCY` | `10` | Max in-flight upstream calls (process-wide) |
-| `MAX_RETRIES` | `3` | Retries after the first attempt |
+| `MAX_CONCURRENCY` | `5` | Max in-flight upstream calls (process-wide) |
+| `MAX_RETRIES` | `4` | Retries after the first attempt |
 | `RETRY_BACKOFF_SECONDS` | `0.5` | Base backoff (doubles each retry) |
+| `RATE_LIMIT_BACKOFF_SECONDS` | `2.0` | Base wait after a `429` with no `Retry-After` (doubles each retry) |
 | `REQUEST_TIMEOUT_SECONDS` | `60` | Per upstream request |
 | `MAX_CSV_ROWS` | `20` | Rows per upload |
 | `MAX_UPLOAD_BYTES` | `1048576` | Upload size cap |

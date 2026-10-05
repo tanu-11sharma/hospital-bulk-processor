@@ -84,8 +84,10 @@ class FakeHospitalDirectory:
         fault = self._next_fault(self.create_faults.get(body["name"]))
         if fault == "timeout":
             raise httpx.ReadTimeout("simulated timeout", request=request)
+        if fault == "429bare":
+            return httpx.Response(429, json={"detail": "rate limited"})
         if fault and fault.isdigit():
-            headers = {"Retry-After": "0"} if fault == "429" else {}
+            headers = {"Retry-After": "0"} if fault == "429" else {}  # "429bare" = no header
             return httpx.Response(int(fault), json={"detail": "injected"}, headers=headers)
 
         record = self._store(body)

@@ -18,6 +18,7 @@ def make_settings(**overrides) -> Settings:
         max_concurrency=5,
         max_retries=2,
         retry_backoff_seconds=0.0,
+        rate_limit_backoff_seconds=0.0,
         max_csv_rows=20,
         max_upload_bytes=64 * 1024,
         max_stored_jobs=100,

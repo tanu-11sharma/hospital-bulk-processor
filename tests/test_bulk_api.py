@@ -251,3 +251,15 @@ def test_health_and_root(client):
     assert client.get("/health").json()["status"] == "ok"
     assert client.get("/health", params={"check_upstream": True}).json()["upstream_reachable"]
     assert client.get("/", follow_redirects=False).status_code in (302, 307)
+
+
+def test_rate_limit_without_retry_after_is_retried(client, upstream):
+    upstream.fail_create("Hospital 1", "429bare", "429bare")
+    body = post_bulk(client, rows(2)).json()
+    assert body["status"] == "completed"
+    assert body["hospitals"][0]["attempts"] == 3
+
+
+def test_head_requests_supported(client):
+    assert client.head("/health").status_code == 200
+    assert client.head("/", follow_redirects=False).status_code in (302, 307)

@@ -128,11 +128,11 @@ def create_app(
 
     # ---- routes ----------------------------------------------------------
 
-    @app.get("/", include_in_schema=False)
+    @app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
     async def root():
         return RedirectResponse(url="/docs")
 
-    @app.get("/health", tags=["meta"])
+    @app.api_route("/health", methods=["GET", "HEAD"], tags=["meta"])
     async def health(request: Request, check_upstream: bool = False):
         body = {"status": "ok", "version": __version__}
         if check_upstream:
