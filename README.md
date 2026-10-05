@@ -4,7 +4,10 @@ A FastAPI service that takes a CSV of hospitals, creates each one through the
 [Hospital Directory API](https://hospital-directory.onrender.com/docs) under a
 fresh batch ID, and activates the batch once every row has been created.
 
-**Live URL:** `https://<your-service>.onrender.com/docs` &nbsp;·&nbsp; **Repo:** `https://github.com/<you>/hospital-bulk`
+**Live API (Swagger UI):** https://hospital-bulk-processor-qgt6.onrender.com/docs  
+**Repo:** https://github.com/tanu-11sharma/hospital-bulk-processor
+
+> Hosted on Render's free tier: the first request after ~15 min idle takes up to a minute while the instance wakes.
 
 ---
 
@@ -13,7 +16,7 @@ fresh batch ID, and activates the batch once every row has been created.
 ```bash
 pip install -r requirements-dev.txt
 uvicorn app.main:app --reload            # http://localhost:8000/docs
-pytest -q                                # 40 tests, ~1.5s, no network needed
+pytest -q                                # 42 tests, ~1.5s, no network needed
 ```
 
 Docker:
@@ -182,7 +185,7 @@ contained change.
 
 ## Testing
 
-`pytest -q` runs 40 tests in about 1.5 s with no network (93% line coverage). The upstream is
+`pytest -q` runs 42 tests in about 1.5 s with no network (93% line coverage). The upstream is
 replaced by `tests/fake_upstream.py`, plugged into the real `httpx` client via
 `MockTransport`, so status handling, retries and JSON parsing are all exercised.
 It can inject `5xx`, `429`, `4xx`, timeouts, "created but the response was lost",
@@ -208,11 +211,24 @@ the Docker image.
 
 ---
 
+## Observed in production
+
+Verified end to end against the real Hospital Directory API: a 5-row CSV is
+created and activated in ~5 s, and `GET /hospitals/batch/{id}` upstream shows
+every record `active=true`.
+
+Right after deploying, the upstream answered **every** call from the Render
+instance with `429 Too Many Requests` (Render free-tier services share outbound
+IPs). The service behaved as designed: rows were retried with backoff, the
+batch was **not** activated, and the job ended `partially_failed`. A few
+minutes later `POST /hospitals/bulk/{id}/resume` completed the same batch and
+activated it. No duplicates were created.
+
 ## Assumptions
 
 * `POST /hospitals/` takes the batch ID in the JSON body as `creation_batch_id`
-  (the field name in the given Hospital model), and returns the created hospital
-  with its `id`.
+  and returns the created hospital with its `id` (confirmed against the
+  upstream OpenAPI schema).
 * Hospitals with the same name *and* address in one file are treated as an
   input mistake and rejected.
 * Phone format is validated loosely (digits, spaces, `+ - ( ) . /` and
